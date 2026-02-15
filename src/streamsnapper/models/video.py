@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import Any
 
+from orjson import dumps
 from pydantic import BaseModel, Field
 
 
@@ -49,6 +50,7 @@ class VideoInformation(BaseModel):
 
     # Media
     thumbnails: list[str] = Field(default_factory=list)
+    all_thumbnails: list[str] = Field(default_factory=list)
 
     @property
     def upload_date(self) -> datetime | None:
@@ -70,8 +72,8 @@ class VideoInformation(BaseModel):
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
     def to_json(self) -> str:
-        """Convert to JSON string."""
-        return self.model_dump_json()
+        """Convert to JSON string using orjson."""
+        return dumps(self.model_dump(), default=str).decode("utf-8")
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -79,25 +81,23 @@ class VideoInformation(BaseModel):
 
 
 class VideoStream(BaseModel):
-    """Individual video stream with comprehensive metadata."""
+    """Individual video stream."""
 
     # Stream info
     url: str
     codec: str | None = None
-    codec_variant: str | None = None
-    raw_codec: str | None = None
     extension: str
 
     # Video properties
     width: int | None = None
     height: int | None = None
-    quality: int | None = None
     framerate: float | None = None
     bitrate: float | None = None
 
     # Additional metadata
     quality_note: str | None = None
     is_hdr: bool = False
+    is_ai_upscaled: bool = False
     size: int | None = None
     language: str | None = None
     youtube_format_id: int | None = None
@@ -122,7 +122,7 @@ class VideoStream(BaseModel):
         score = 0.0
 
         if self.width and self.height:
-            score += (self.width * self.height) / 1000000  # Megapixels
+            score += (self.width * self.height) / 1_000_000  # Megapixels
 
         if self.framerate:
             score += self.framerate / 10
@@ -146,8 +146,8 @@ class VideoStream(BaseModel):
         return (self.height or 0) >= 2160
 
     def to_json(self) -> str:
-        """Convert to JSON string."""
-        return self.model_dump_json()
+        """Convert to JSON string using orjson."""
+        return dumps(self.model_dump(), default=str).decode("utf-8")
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -155,118 +155,66 @@ class VideoStream(BaseModel):
 
 
 class VideoStreamCollection(BaseModel):
-    """Collection of video streams with advanced filtering and utilities."""
+    """Collection of video streams with intuitive filtering."""
 
     streams: list[VideoStream] = Field(default_factory=list)
 
     @property
-    def has_streams(self) -> bool:
-        """Check if collection has any streams."""
-        return len(self.streams) > 0
-
-    @property
-    def available_qualities(self) -> list[str]:
-        """Get list of available qualities sorted by resolution."""
-        qualities = {stream.resolution for stream in self.streams if stream.resolution}
-        return sorted(qualities, key=lambda x: int(x.replace("p", "")), reverse=True)
-
-    @property
-    def available_codecs(self) -> list[str]:
-        """Get list of available codecs."""
-        codecs = {stream.codec for stream in self.streams if stream.codec}
-        return sorted(codecs)
-
-    @property
-    def best_stream(self) -> VideoStream | None:
-        """Get highest quality stream based on quality score."""
+    def best(self) -> VideoStream | None:
+        """Get the absolute best quality stream."""
         if not self.streams:
             return None
         return max(self.streams, key=lambda s: s.quality_score)
 
     @property
-    def worst_stream(self) -> VideoStream | None:
-        """Get lowest quality stream based on quality score."""
+    def worst(self) -> VideoStream | None:
+        """Get the lowest quality stream."""
         if not self.streams:
             return None
         return min(self.streams, key=lambda s: s.quality_score)
 
-    @property
-    def hd_streams(self) -> list[VideoStream]:
-        """Get only HD streams (>=720p)."""
-        return [s for s in self.streams if s.is_hd]
+    def filter(
+        self,
+        resolution: str | None = None,
+        min_resolution: str | None = None,
+        max_resolution: str | None = None,
+        codec: str | None = None,
+        hdr: bool | None = None,
+        fps: float | None = None,
+    ) -> "VideoStreamCollection":
+        """
+        Filter streams by various criteria.
 
-    @property
-    def uhd_streams(self) -> list[VideoStream]:
-        """Get only UHD/4K streams (>=2160p)."""
-        return [s for s in self.streams if s.is_4k]
-
-    @property
-    def hdr_streams(self) -> list[VideoStream]:
-        """Get only HDR streams."""
-        return [s for s in self.streams if s.is_hdr]
-
-    def get_by_resolution(self, resolution: str, fallback: bool = True) -> list[VideoStream]:
-        """Get streams by resolution with optional fallback to lower quality."""
-        target_height = int(resolution.replace("p", ""))
-
-        exact_matches = [s for s in self.streams if s.height == target_height]
-        if exact_matches:
-            return sorted(exact_matches, key=lambda s: s.quality_score, reverse=True)
-
-        if fallback:
-            fallback_streams = [s for s in self.streams if s.height and s.height <= target_height]
-            if fallback_streams:
-                heights = [s.height for s in fallback_streams if s.height is not None]
-                best_fallback_height = max(heights)
-                return sorted(
-                    [s for s in fallback_streams if s.height == best_fallback_height],
-                    key=lambda s: s.quality_score,
-                    reverse=True,
-                )
-
-        return []
-
-    def get_by_codec(self, codec: str) -> list[VideoStream]:
-        """Get streams by codec type."""
-        return [s for s in self.streams if s.codec and s.codec.lower() == codec.lower()]
-
-    def get_by_framerate_range(self, min_fps: float | None = None, max_fps: float | None = None) -> list[VideoStream]:
-        """Get streams within framerate range."""
+        Returns a new VideoStreamCollection.
+        """
         filtered = self.streams
 
-        if min_fps is not None:
-            filtered = [s for s in filtered if s.framerate and s.framerate >= min_fps]
+        if resolution:
+            target = int(resolution.replace("p", ""))
+            filtered = [s for s in filtered if s.height == target]
 
-        if max_fps is not None:
-            filtered = [s for s in filtered if s.framerate and s.framerate <= max_fps]
+        if min_resolution:
+            target = int(min_resolution.replace("p", ""))
+            filtered = [s for s in filtered if s.height and s.height >= target]
 
-        return sorted(filtered, key=lambda s: s.quality_score, reverse=True)
+        if max_resolution:
+            target = int(max_resolution.replace("p", ""))
+            filtered = [s for s in filtered if s.height and s.height <= target]
 
-    def get_by_bitrate_range(
-        self, min_bitrate: float | None = None, max_bitrate: float | None = None
-    ) -> list[VideoStream]:
-        """Get streams within bitrate range."""
-        filtered = self.streams
+        if codec:
+            filtered = [s for s in filtered if s.codec and codec.lower() in s.codec.lower()]
 
-        if min_bitrate is not None:
-            filtered = [s for s in filtered if s.bitrate and s.bitrate >= min_bitrate]
+        if hdr is not None:
+            filtered = [s for s in filtered if s.is_hdr == hdr]
 
-        if max_bitrate is not None:
-            filtered = [s for s in filtered if s.bitrate and s.bitrate <= max_bitrate]
+        if fps:
+            filtered = [s for s in filtered if s.framerate == fps]
 
-        return sorted(filtered, key=lambda s: s.quality_score, reverse=True)
+        return VideoStreamCollection(streams=sorted(filtered, key=lambda s: s.quality_score, reverse=True))
 
-    def filter_by_quality_score(self, min_score: float = 0.0) -> list[VideoStream]:
-        """Get streams with quality score above threshold."""
-        return [s for s in self.streams if s.quality_score >= min_score]
-
-    def to_json(self) -> str:
-        """Convert to JSON string."""
-        return self.model_dump_json()
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary."""
-        return self.model_dump()
+    def first(self) -> VideoStream | None:
+        """Return the first stream in the collection or None."""
+        return self.streams[0] if self.streams else None
 
     def __len__(self) -> int:
         return len(self.streams)
@@ -276,3 +224,7 @@ class VideoStreamCollection(BaseModel):
 
     def __getitem__(self, index):
         return self.streams[index]
+
+    def to_json(self) -> str:
+        """Convert to JSON string using orjson."""
+        return dumps(self.model_dump(), default=str).decode("utf-8")

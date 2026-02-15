@@ -166,7 +166,7 @@ def sanitize_filename(text: str, max_length: int | None = DEFAULT_FILENAME_MAX_L
         cleaned = cleaned[:cutoff] if cutoff != -1 else cleaned[:max_length]
         cleaned = cleaned.rstrip()
 
-    result = cleaned if cleaned else None
+    result = cleaned or None
     logger.trace(f"Sanitized filename: '{result}' from original text: '{text}'")
 
     return result

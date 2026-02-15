@@ -3,7 +3,7 @@ name: Auto Release Creation and PyPI Publishing
 on:
   push:
     branches:
-      - main
+      - prod
 
 permissions:
   contents: write
@@ -42,17 +42,13 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
-      - name: 📚 Load Release Config
+      - name: 📝 Set Package Info
         if: steps.check_commit.outputs.should_release == 'true'
         id: release_config
         run: |
-          PACKAGE_NAME=$(uvx yq -r '.package.name' .github/release-config.yml)
-          PACKAGE_TITLE=$(uvx yq -r '.package.title' .github/release-config.yml)
-          PACKAGE_DESC=$(uvx yq -r '.package.description' .github/release-config.yml)
-
-          echo "pkg_name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
-          echo "pkg_title=$PACKAGE_TITLE" >> $GITHUB_OUTPUT
-          echo "pkg_desc=$PACKAGE_DESC" >> $GITHUB_OUTPUT
+          echo "pkg_name=streamsnapper" >> $GITHUB_OUTPUT
+          echo "pkg_title=StreamSnapper" >> $GITHUB_OUTPUT
+          echo "pkg_desc=Extract and analyze YouTube video streams with intelligent quality selection, language fallback, and comprehensive metadata retrieval" >> $GITHUB_OUTPUT
 
       - name: 📝 Extract Version and Text
         if: steps.check_commit.outputs.should_release == 'true'

@@ -5,7 +5,7 @@ description = "Extract and analyze YouTube video streams with intelligent qualit
 authors = [{name = "henrique-coder", email = "henriquemoreira10fk@gmail.com"}]
 license = "MIT"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<=3.14"
 keywords = [
     "stream",
     "snapper",
@@ -44,14 +44,15 @@ classifiers = [
 dependencies = [
     "curl-cffi>=0.14.0",
     "loguru>=0.7.3",
+    "orjson>=3.11.7",
     "pydantic>=2.12.5",
-    "yt-dlp[default]>=2025.12.8",
+    "yt-dlp[default]>=2026.2.4",
 ]
 
 [dependency-groups]
 dev = [
-    "prek>=0.2.25",
-    "rich>=14.2.0",
+    "prek>=0.3.3",
+    "rich>=14.3.2",
 ]
 lint = [
     "ruff>=0.14.10",
@@ -101,7 +102,6 @@ fixable = ["ALL"]            # Allow auto-fix for all enabled rules
 dummy-variable-rgx = "^_$"   # Only underscore is considered a dummy variable
 
 [tool.ruff.lint.isort]
-known-first-party = ["perplexity_webui_scraper"]
 lines-after-imports = 2             # PEP 8: two blank lines after imports
 force-sort-within-sections = true   # Alphabetical order within each section
 split-on-trailing-comma = true      # Trailing comma triggers multi-line format
