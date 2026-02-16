@@ -19,7 +19,7 @@ class DownloadableStreamMixin:
     clean_title: str | None
     id: str | None
     extension: str
-    media_type: str | None = None
+    media_type: str | None
 
     def download(
         self,

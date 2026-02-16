@@ -61,6 +61,7 @@ class YouTube:
             cookies: Cookie source for accessing restricted content.
             logging: Enable detailed logging.
         """
+
         self.url = url
         self._logging = logging
 
@@ -90,10 +91,12 @@ class YouTube:
     def _configure_cookies(self, cookies: CookieBrowser | CookieFile | None) -> None:
         if isinstance(cookies, CookieBrowser):
             self._ydl_opts["cookiesfrombrowser"] = (cookies.value, None, None, None)
+
             if self._logging:
                 logger.info(f"Enabled cookie extraction from {cookies.value}")
         elif isinstance(cookies, CookieFile):
             self._ydl_opts["cookiefile"] = cookies.path.as_posix()
+
             if self._logging:
                 logger.info(f"Enabled cookie file: {cookies.path}")
 

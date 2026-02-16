@@ -27,8 +27,9 @@ jobs:
 
       - name: 🔍 Check Commit Message
         id: check_commit
+        env:
+          COMMIT_MSG: "${{ github.event.head_commit.message }}"
         run: |
-          COMMIT_MSG="${{ github.event.head_commit.message }}"
           if [[ "$COMMIT_MSG" == chore:*"bump version to"* ]]; then
             echo "should_release=true" >> $GITHUB_OUTPUT
           else
@@ -53,8 +54,9 @@ jobs:
       - name: 📝 Extract Version and Text
         if: steps.check_commit.outputs.should_release == 'true'
         id: version_info
+        env:
+          COMMIT_MSG: "${{ github.event.head_commit.message }}"
         run: |
-          COMMIT_MSG="${{ github.event.head_commit.message }}"
           VERSION=$(echo "$COMMIT_MSG" | grep -oP 'chore: bump version to \K[^ )]+')
           EXTRA_TEXT=$(echo "$COMMIT_MSG" | grep -oP '\(.*\)' | sed 's/[()]//g' || echo "")
 
