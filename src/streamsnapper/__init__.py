@@ -1,9 +1,10 @@
 from .core import YouTube
 from .exceptions import InvalidDataError, ScrapingError, StreamSnapperError
-from .utils import CookieFile, SupportedCookieBrowser
+from .utils import CookieBrowser, CookieFile
 
 
 __all__ = [
+    "CookieBrowser",
     "CookieFile",
     "InvalidDataError",
     "ScrapingError",

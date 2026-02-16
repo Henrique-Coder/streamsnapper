@@ -12,3 +12,7 @@ class InvalidDataError(StreamSnapperError):
 
 class ScrapingError(StreamSnapperError):
     """Exception raised when an error occurs while scraping data."""
+
+
+class DownloadError(StreamSnapperError):
+    """Exception raised when an error occurs during download."""

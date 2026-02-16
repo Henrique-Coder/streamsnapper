@@ -43,9 +43,11 @@ classifiers = [
 ]
 dependencies = [
     "curl-cffi>=0.14.0",
+    "ffmpeg-python>=0.2.0",
     "loguru>=0.7.3",
     "orjson>=3.11.7",
     "pydantic>=2.12.5",
+    "secretstorage>=3.5.0",
     "yt-dlp[default]>=2026.2.4",
 ]
 
@@ -57,9 +59,6 @@ dev = [
 lint = [
     "ruff>=0.14.10",
     "ty>=0.0.7",
-]
-tests = [
-    "pytest>=9.0.2",
 ]
 
 [project.urls]

@@ -23,7 +23,7 @@ INVALID_FILENAME_CHARS_PATTERN: Final[str] = r'[<>:"/\\|?*\0\t\n\r\v\f]'
 WHITESPACE_PATTERN: Final[str] = r"\s+"
 
 
-class SupportedCookieBrowser(str, Enum):
+class CookieBrowser(str, Enum):
     """Supported browsers for extracting cookies."""
 
     CHROME = "chrome"

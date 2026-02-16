@@ -1,10 +1,19 @@
 """Video-related data models."""
 
 from datetime import datetime
-from typing import Any
+from pathlib import Path
+from time import time
+from typing import TYPE_CHECKING, Any
 
 from orjson import dumps
 from pydantic import BaseModel, Field
+
+from ..logger import logger
+from .mixins import DownloadableStreamMixin
+
+
+if TYPE_CHECKING:
+    from .audio import AudioStream
 
 
 class VideoInformation(BaseModel):
@@ -80,13 +89,16 @@ class VideoInformation(BaseModel):
         return self.model_dump()
 
 
-class VideoStream(BaseModel):
+class VideoStream(BaseModel, DownloadableStreamMixin):
     """Individual video stream."""
 
     # Stream info
     url: str
+    source_url: str | None = None
     codec: str | None = None
     extension: str
+    clean_title: str | None = None
+    id: str | None = None
 
     # Video properties
     width: int | None = None
@@ -100,7 +112,8 @@ class VideoStream(BaseModel):
     is_ai_upscaled: bool = False
     size: int | None = None
     language: str | None = None
-    youtube_format_id: int | None = None
+    youtube_format_id: str | None = None
+    media_type: str = "video"
 
     @property
     def resolution(self) -> str | None:
@@ -152,6 +165,89 @@ class VideoStream(BaseModel):
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return self.model_dump()
+
+    def download_with_audio(
+        self,
+        audio: "AudioStream",
+        output_path: str | Path | None = None,
+        filename: str | None = None,
+        force_overwrite: bool = False,
+        quiet: bool = True,
+    ) -> Path:
+        """
+        Download video and merge with provided audio stream.
+
+        Args:
+            audio: The audio stream to merge with.
+            output_path: Directory to save the file to. Defaults to current directory.
+            filename: Specific filename.
+            force_overwrite: Whether to overwrite existing files.
+            quiet: Suppress stdout/stderr.
+
+        Returns:
+            Path to the merged file.
+        """
+        output_path = Path.cwd() if output_path is None else Path(output_path)
+
+        if not output_path.exists():
+            output_path.mkdir(parents=True, exist_ok=True)
+
+        # Generate final filename if not provided
+        if not filename:
+            if self.clean_title and self.id:
+                # Merge format does NOT have (video-only) suffix
+                filename = f"{self.clean_title} [yt-{self.id}].{self.extension}"
+            else:
+                timestamp = int(time())
+                filename = f"merged_{timestamp}.{self.extension}"
+
+        if not filename.endswith(f".{self.extension}"):
+            filename = f"{filename}.{self.extension}"
+
+        final_path = output_path / filename
+
+        # Temporary files
+        timestamp = int(time())
+        video_temp = output_path / f"temp_video_{timestamp}_{self.id}.{self.extension}"
+        audio_temp = output_path / f"temp_audio_{timestamp}_{audio.id}.{audio.extension}"
+
+        try:
+            if not quiet:
+                logger.info(f"Downloading video stream to temporary file: {video_temp}")
+
+            # Download video to temp
+            self.download(
+                output_path=output_path,
+                filename=video_temp.name,
+                force_overwrite=True,  # Temp files are always overwritten
+                quiet=quiet,
+            )
+
+            if not quiet:
+                logger.info(f"Downloading audio stream to temporary file: {audio_temp}")
+
+            # Download audio to temp
+            audio.download(
+                output_path=output_path,
+                filename=audio_temp.name,
+                force_overwrite=True,  # Temp files are always overwritten
+                quiet=quiet,
+            )
+
+            if not quiet:
+                logger.info(f"Merging streams to: {final_path}")
+
+            # Merge
+            self._merge_streams(video_temp, audio_temp, final_path, overwrite=force_overwrite)
+
+            return final_path
+
+        finally:
+            # Cleanup temp files
+            if video_temp.exists():
+                video_temp.unlink()
+            if audio_temp.exists():
+                audio_temp.unlink()
 
 
 class VideoStreamCollection(BaseModel):

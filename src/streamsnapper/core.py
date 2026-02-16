@@ -15,8 +15,8 @@ from .models import (
     VideoStreamCollection,
 )
 from .utils import (
+    CookieBrowser,
     CookieFile,
-    SupportedCookieBrowser,
     filter_valid_youtube_thumbnails,
     get_youtube_dislike_count,
     sanitize_filename,
@@ -50,7 +50,7 @@ class YouTube:
     def __init__(
         self,
         url: str,
-        cookies: SupportedCookieBrowser | CookieFile | None = None,
+        cookies: CookieBrowser | CookieFile | None = None,
         logging: bool = False,
     ) -> None:
         """
@@ -87,8 +87,8 @@ class YouTube:
         # Perform extraction immediately
         self._extract()
 
-    def _configure_cookies(self, cookies: SupportedCookieBrowser | CookieFile | None) -> None:
-        if isinstance(cookies, SupportedCookieBrowser):
+    def _configure_cookies(self, cookies: CookieBrowser | CookieFile | None) -> None:
+        if isinstance(cookies, CookieBrowser):
             self._ydl_opts["cookiesfrombrowser"] = (cookies.value, None, None, None)
             if self._logging:
                 logger.info(f"Enabled cookie extraction from {cookies.value}")
@@ -177,6 +177,7 @@ class YouTube:
                 video_list.append(
                     VideoStream(
                         url=f["url"],
+                        source_url=self.url,
                         codec=f.get("vcodec"),
                         extension=f.get("ext", "mp4"),
                         width=f.get("width"),
@@ -187,20 +188,18 @@ class YouTube:
                         is_hdr="hdr" in (f.get("format_note") or "").lower(),
                         is_ai_upscaled="ai-upscaled" in (f.get("format_note") or "").lower(),
                         size=f.get("filesize"),
-                        youtube_format_id=int(f["format_id"]) if f["format_id"].isdigit() else None,
+                        youtube_format_id=f.get("format_id"),
+                        clean_title=self.metadata.clean_title,
+                        id=self.metadata.id,
                     )
                 )
 
-            # Check if audio (some streams are both video+audio, we add them to both or just video?
-            # User wants intuitive. Usually "video" means "watchable", "audio" means "listenable".
-            # yt-dlp separates them.
-            # Pure audio streams have vcodec='none'.
-            # Muxed streams have both.
-            # Check if audio (some streams are both video+audio)
+            # Check if audio
             if f.get("acodec") != "none" and f.get("vcodec") == "none":
                 audio_list.append(
                     AudioStream(
                         url=f["url"],
+                        source_url=self.url,
                         codec=f.get("acodec"),
                         extension=f.get("ext", "m4a"),
                         bitrate=f.get("abr"),
@@ -208,7 +207,9 @@ class YouTube:
                         channels=f.get("audio_channels"),
                         language=f.get("language"),
                         size=f.get("filesize"),
-                        youtube_format_id=int(f["format_id"]) if f["format_id"].isdigit() else None,
+                        youtube_format_id=f.get("format_id"),
+                        clean_title=self.metadata.clean_title,
+                        id=self.metadata.id,
                     )
                 )
 
