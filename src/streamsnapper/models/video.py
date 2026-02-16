@@ -64,13 +64,16 @@ class VideoInformation(BaseModel):
     @property
     def upload_date(self) -> datetime | None:
         """Get upload date as datetime object."""
+
         if self.upload_timestamp:
             return datetime.fromtimestamp(self.upload_timestamp)
+
         return None
 
     @property
     def duration_formatted(self) -> str:
         """Get formatted duration (HH:MM:SS)."""
+
         if not self.duration:
             return "Unknown"
 
@@ -82,10 +85,12 @@ class VideoInformation(BaseModel):
 
     def to_json(self) -> str:
         """Convert to JSON string using orjson."""
+
         return dumps(self.model_dump(), default=str).decode("utf-8")
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
+
         return self.model_dump()
 
 
@@ -118,31 +123,33 @@ class VideoStream(BaseModel, DownloadableStreamMixin):
     @property
     def resolution(self) -> str | None:
         """Get resolution string like '1080p'."""
+
         if self.height:
             return f"{self.height}p"
+
         return None
 
     @property
     def aspect_ratio(self) -> float | None:
         """Get aspect ratio (width/height)."""
+
         if self.width and self.height:
             return round(self.width / self.height, 2)
+
         return None
 
     @property
     def quality_score(self) -> float:
         """Calculate quality score for ranking."""
+
         score = 0.0
 
         if self.width and self.height:
             score += (self.width * self.height) / 1_000_000  # Megapixels
-
         if self.framerate:
             score += self.framerate / 10
-
         if self.bitrate:
             score += self.bitrate / 100
-
         if self.is_hdr:
             score += 10
 
@@ -151,19 +158,23 @@ class VideoStream(BaseModel, DownloadableStreamMixin):
     @property
     def is_hd(self) -> bool:
         """Check if stream is HD (>=720p)."""
+
         return (self.height or 0) >= 720
 
     @property
     def is_4k(self) -> bool:
         """Check if stream is 4K (>=2160p)."""
+
         return (self.height or 0) >= 2160
 
     def to_json(self) -> str:
         """Convert to JSON string using orjson."""
+
         return dumps(self.model_dump(), default=str).decode("utf-8")
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
+
         return self.model_dump()
 
     def download_with_audio(
@@ -187,6 +198,7 @@ class VideoStream(BaseModel, DownloadableStreamMixin):
         Returns:
             Path to the merged file.
         """
+
         output_path = Path.cwd() if output_path is None else Path(output_path)
 
         if not output_path.exists():
@@ -258,15 +270,19 @@ class VideoStreamCollection(BaseModel):
     @property
     def best(self) -> VideoStream | None:
         """Get the absolute best quality stream."""
+
         if not self.streams:
             return None
+
         return max(self.streams, key=lambda s: s.quality_score)
 
     @property
     def worst(self) -> VideoStream | None:
         """Get the lowest quality stream."""
+
         if not self.streams:
             return None
+
         return min(self.streams, key=lambda s: s.quality_score)
 
     def filter(
@@ -283,26 +299,22 @@ class VideoStreamCollection(BaseModel):
 
         Returns a new VideoStreamCollection.
         """
+
         filtered = self.streams
 
         if resolution:
             target = int(resolution.replace("p", ""))
             filtered = [s for s in filtered if s.height == target]
-
         if min_resolution:
             target = int(min_resolution.replace("p", ""))
             filtered = [s for s in filtered if s.height and s.height >= target]
-
         if max_resolution:
             target = int(max_resolution.replace("p", ""))
             filtered = [s for s in filtered if s.height and s.height <= target]
-
         if codec:
             filtered = [s for s in filtered if s.codec and codec.lower() in s.codec.lower()]
-
         if hdr is not None:
             filtered = [s for s in filtered if s.is_hdr == hdr]
-
         if fps:
             filtered = [s for s in filtered if s.framerate == fps]
 
@@ -310,6 +322,7 @@ class VideoStreamCollection(BaseModel):
 
     def first(self) -> VideoStream | None:
         """Return the first stream in the collection or None."""
+
         return self.streams[0] if self.streams else None
 
     def __len__(self) -> int:
@@ -323,4 +336,5 @@ class VideoStreamCollection(BaseModel):
 
     def to_json(self) -> str:
         """Convert to JSON string using orjson."""
+
         return dumps(self.model_dump(), default=str).decode("utf-8")

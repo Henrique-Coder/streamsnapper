@@ -5,7 +5,7 @@ from .subtitle import SubtitleStream, SubtitleStreamCollection
 from .video import VideoInformation, VideoStream, VideoStreamCollection
 
 
-__all__ = [
+__all__: list[str] = [
     "AudioStream",
     "AudioStreamCollection",
     "SubtitleStream",

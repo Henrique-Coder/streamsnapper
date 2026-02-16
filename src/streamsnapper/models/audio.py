@@ -42,12 +42,14 @@ class AudioStream(BaseModel, DownloadableStreamMixin):
         """Calculate quality score for ranking."""
 
         score = 0.0
+
         if self.bitrate:
             score += self.bitrate * 10
         if self.sample_rate:
             score += self.sample_rate / 1000
         if self.channels:
             score += self.channels * 5
+
         return round(score, 2)
 
     def to_json(self) -> str:
@@ -81,6 +83,7 @@ class AudioStream(BaseModel, DownloadableStreamMixin):
         Returns:
             Path to the merged file.
         """
+
         output_path = Path.cwd() if output_path is None else Path(output_path)
 
         if not output_path.exists():

@@ -19,14 +19,17 @@ class SubtitleStream(BaseModel):
     @property
     def is_manual(self) -> bool:
         """Check if subtitle is manually created (not auto-generated)."""
+
         return not self.is_auto_generated
 
     def to_json(self) -> str:
         """Convert to JSON string using orjson."""
+
         return dumps(self.model_dump(), default=str).decode("utf-8")
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
+
         return self.model_dump()
 
 
@@ -38,12 +41,16 @@ class SubtitleStreamCollection(BaseModel):
     @property
     def best(self) -> SubtitleStream | None:
         """Get the best available subtitle (prefers manual over auto-generated)."""
+
         if not self.streams:
             return None
+
         # Manual first
         manual = [s for s in self.streams if s.is_manual]
+
         if manual:
             return manual[0]
+
         # Then auto
         return self.streams[0]
 
@@ -58,14 +65,13 @@ class SubtitleStreamCollection(BaseModel):
 
         Returns a new SubtitleStreamCollection.
         """
+
         filtered = self.streams
 
         if language:
             filtered = [s for s in filtered if s.language and language.lower() in s.language.lower()]
-
         if manual_only:
             filtered = [s for s in filtered if s.is_manual]
-
         if extension:
             filtered = [s for s in filtered if s.extension.lower() == extension.lower()]
 
@@ -73,6 +79,7 @@ class SubtitleStreamCollection(BaseModel):
 
     def first(self) -> SubtitleStream | None:
         """Return the first stream in the collection or None."""
+
         return self.streams[0] if self.streams else None
 
     def __len__(self) -> int:
@@ -86,4 +93,5 @@ class SubtitleStreamCollection(BaseModel):
 
     def to_json(self) -> str:
         """Convert to JSON string using orjson."""
+
         return dumps(self.model_dump(), default=str).decode("utf-8")

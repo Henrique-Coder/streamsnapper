@@ -4,7 +4,7 @@ from enum import Enum
 from json import JSONDecodeError
 from locale import LC_ALL, getlocale, setlocale
 from pathlib import Path
-from re import sub
+from re import Pattern, compile, sub
 from typing import Any, Final
 from unicodedata import normalize
 
@@ -21,6 +21,7 @@ YOUTUBE_DISLIKE_API_URL: Final[str] = "https://returnyoutubedislikeapi.com/votes
 
 INVALID_FILENAME_CHARS_PATTERN: Final[str] = r'[<>:"/\\|?*\0\t\n\r\v\f]'
 WHITESPACE_PATTERN: Final[str] = r"\s+"
+YOUTUBE_ID_REGEX: Final[Pattern] = compile(r"(?:v=|\/|be\/)(?P<id>[0-9A-Za-z_-]{11})(?:[?&]|\/|$)")
 
 
 class CookieBrowser(str, Enum):
@@ -295,3 +296,33 @@ def get_youtube_dislike_count(video_id: str) -> int | None:
         logger.trace(f"Failed to fetch dislike count (request exception): {video_id} - {e!r}")
 
     return None
+
+
+def extract_video_id(url: str) -> str | None:
+    """
+    Extract YouTube video ID from URL.
+
+    Args:
+        url: YouTube URL
+
+    Returns:
+        Video ID or None if not found
+    """
+    match = YOUTUBE_ID_REGEX.search(url)
+    if match:
+        return match.group("id")
+
+    return None
+
+
+def is_youtube_music_url(url: str) -> bool:
+    """
+    Check if URL is from YouTube Music.
+
+    Args:
+        url: URL to check
+
+    Returns:
+        True if music.youtube.com, else False
+    """
+    return "music.youtube.com" in url

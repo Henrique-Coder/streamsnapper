@@ -3,7 +3,7 @@ from .exceptions import InvalidDataError, ScrapingError, StreamSnapperError
 from .utils import CookieBrowser, CookieFile
 
 
-__all__ = [
+__all__: list[str] = [
     "CookieBrowser",
     "CookieFile",
     "InvalidDataError",

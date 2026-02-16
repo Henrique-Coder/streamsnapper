@@ -47,6 +47,7 @@ class DownloadableStreamMixin:
         Returns:
             Path to the downloaded file.
         """
+
         output_path = Path.cwd() if output_path is None else Path(output_path)
 
         if not output_path.exists():
@@ -115,6 +116,7 @@ class DownloadableStreamMixin:
         Raises:
             StreamSnapperError: If merge fails.
         """
+
         if output_path.exists() and not overwrite:
             raise DownloadError(f"Output file already exists: {output_path}")
 
@@ -130,6 +132,5 @@ class DownloadableStreamMixin:
                 acodec="copy",
                 map_metadata=0,
             ).run(overwrite_output=overwrite, quiet=True)
-
         except ffmpeg.Error as e:
             raise DownloadError(f"FFmpeg merge failed: {e.stderr.decode() if e.stderr else str(e)}") from e

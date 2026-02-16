@@ -17,8 +17,10 @@ from .models import (
 from .utils import (
     CookieBrowser,
     CookieFile,
+    extract_video_id,
     filter_valid_youtube_thumbnails,
     get_youtube_dislike_count,
+    is_youtube_music_url,
     sanitize_filename,
 )
 
@@ -62,7 +64,19 @@ class YouTube:
             logging: Enable detailed logging.
         """
 
-        self.url = url
+        # Sanitize URL if possible
+        video_id = extract_video_id(url)
+        if video_id:
+            if is_youtube_music_url(url):
+                # Force music platform domain
+                self.url = f"https://music.youtube.com/watch?v={video_id}"
+            else:
+                # Force standard platform domain
+                self.url = f"https://www.youtube.com/watch?v={video_id}"
+        else:
+            # Fallback to original URL if ID extraction fails (should be rare)
+            self.url = url
+
         self._logging = logging
 
         if not logging:
