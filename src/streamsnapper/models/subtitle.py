@@ -1,5 +1,6 @@
 """Subtitle-related data models."""
 
+from collections.abc import Iterator
 from typing import Any
 
 from orjson import dumps
@@ -85,10 +86,10 @@ class SubtitleStreamCollection(BaseModel):
     def __len__(self) -> int:
         return len(self.streams)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[SubtitleStream]:
         return iter(self.streams)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> SubtitleStream:
         return self.streams[index]
 
     def to_json(self) -> str:

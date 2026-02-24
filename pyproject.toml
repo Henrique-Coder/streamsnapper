@@ -48,17 +48,17 @@ dependencies = [
     "orjson>=3.11.7",
     "pydantic>=2.12.5",
     "secretstorage>=3.5.0",
-    "yt-dlp[default]>=2026.2.4",
+    "yt-dlp[default]>=2026.2.21",
 ]
 
 [dependency-groups]
 dev = [
     "prek>=0.3.3",
-    "rich>=14.3.2",
+    "rich>=14.3.3",
 ]
 lint = [
-    "ruff>=0.14.10",
-    "ty>=0.0.7",
+    "ruff>=0.15.2",
+    "ty>=0.0.18",
 ]
 
 [project.urls]

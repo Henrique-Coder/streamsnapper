@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from time import time
+from typing import Any
 
 import ffmpeg
 from yt_dlp import YoutubeDL
@@ -20,6 +21,7 @@ class DownloadableStreamMixin:
     id: str | None
     extension: str
     media_type: str | None
+    ydl_opts: dict[str, Any]
 
     def download(
         self,
@@ -72,7 +74,8 @@ class DownloadableStreamMixin:
 
         outtmpl = str(output_path / filename)
 
-        ydl_opts = {
+        ydl_opts: dict[str, Any] = {
+            **self.ydl_opts,
             "outtmpl": outtmpl,
             "quiet": quiet,
             "no_warnings": quiet,

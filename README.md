@@ -27,12 +27,8 @@ StreamSnapper provides a clean, pythonic interface for extracting YouTube metada
 
 ## 🔧 Installation
 
-```bash
-# Using uv (Recommended)
+```shell
 uv add streamsnapper
-
-# Using pip
-pip install streamsnapper
 ```
 
 **Requirements:** Python 3.10+
@@ -107,7 +103,7 @@ The main entry point.
 ```python
 yt = YouTube(
     url="https://...",
-    cookies=None,      # Optional: CookieFile or SupportedCookieBrowser
+    cookies=None,      # Optional: CookieFile or CookieBrowser
     logging=False      # Optional: Enable verbose logging
 )
 ```
@@ -133,17 +129,50 @@ Represents a single video format. Key attributes:
 
 ## 🛡️ Authentication (Premium/Age-Restricted)
 
-Access private or age-restricted content using cookies:
+Access private or age-restricted content using cookies. **Cookies are automatically reused across extraction and all subsequent downloads** — they are extracted a single time and propagated to every stream, so you never hit unnecessary re-authentication.
 
 ```python
-from streamsnapper import YouTube, SupportedCookieBrowser, CookieFile
+from streamsnapper import YouTube, CookieBrowser, CookieFile
 
 # Use cookies from local Chrome browser
-yt = YouTube(url, cookies=SupportedCookieBrowser.CHROME)
+yt = YouTube(url, cookies=CookieBrowser.CHROME)
 
 # Use a Netscape-formatted cookie file
 yt = YouTube(url, cookies=CookieFile("cookies.txt"))
 ```
+
+## ⬇️ Downloading
+
+### Download individual stream
+
+```python
+# Download best video-only stream
+path = yt.streams.video.best.download(output_path="downloads/")
+
+# Download best audio-only stream
+path = yt.streams.audio.best.download(output_path="downloads/")
+```
+
+Default filenames follow the convention:
+
+- Video-only: `<Title> (video-only) [yt-<ID>].ext`
+- Audio-only: `<Title> (audio-only) [yt-<ID>].ext`
+
+### Download and merge (video + audio)
+
+YouTube separates high-quality video and audio into distinct streams. Use `download_with_audio` to merge them automatically with `ffmpeg`:
+
+```python
+video = yt.streams.video.best
+audio = yt.streams.audio.best
+
+# Merge and save — requires ffmpeg in PATH
+path = video.download_with_audio(audio=audio, output_path="downloads/")
+# Result filename: <Title> [yt-<ID>].ext
+```
+
+> [!NOTE]
+> `ffmpeg` must be installed and available in your system PATH for merging to work.
 
 ## 📝 License
 

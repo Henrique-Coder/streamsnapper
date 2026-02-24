@@ -1,5 +1,6 @@
 """Video-related data models."""
 
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
 from time import time
@@ -119,6 +120,7 @@ class VideoStream(BaseModel, DownloadableStreamMixin):
     language: str | None = None
     youtube_format_id: str | None = None
     media_type: str = "video"
+    ydl_opts: dict[str, Any] = Field(default_factory=dict, exclude=True)
 
     @property
     def resolution(self) -> str | None:
@@ -328,10 +330,10 @@ class VideoStreamCollection(BaseModel):
     def __len__(self) -> int:
         return len(self.streams)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[VideoStream]:
         return iter(self.streams)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> VideoStream:
         return self.streams[index]
 
     def to_json(self) -> str:

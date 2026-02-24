@@ -36,6 +36,7 @@ class AudioStream(BaseModel, DownloadableStreamMixin):
     language: str | None = None
     size: int | None = None
     media_type: str = "audio"
+    ydl_opts: dict[str, Any] = Field(default_factory=dict, exclude=True)
 
     @property
     def quality_score(self) -> float:

@@ -1,5 +1,7 @@
+from operator import attrgetter
 from typing import Any
 
+from pydantic import BaseModel
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError, ExtractorError
 
@@ -25,18 +27,12 @@ from .utils import (
 )
 
 
-class Streams:
+class Streams(BaseModel, arbitrary_types_allowed=True):
     """Container for all media streams."""
 
-    def __init__(
-        self,
-        video: VideoStreamCollection,
-        audio: AudioStreamCollection,
-        subtitle: SubtitleStreamCollection,
-    ):
-        self.video = video
-        self.audio = audio
-        self.subtitle = subtitle
+    video: VideoStreamCollection
+    audio: AudioStreamCollection
+    subtitle: SubtitleStreamCollection
 
 
 class YouTube:
@@ -94,6 +90,13 @@ class YouTube:
 
         self._configure_cookies(cookies)
 
+        # Build cookie-specific ydl_opts to share with stream downloads
+        self._stream_ydl_opts: dict[str, Any] = {}
+        if "cookiesfrombrowser" in self._ydl_opts:
+            self._stream_ydl_opts["cookiesfrombrowser"] = self._ydl_opts["cookiesfrombrowser"]
+        if "cookiefile" in self._ydl_opts:
+            self._stream_ydl_opts["cookiefile"] = self._ydl_opts["cookiefile"]
+
         # Storage for extracted data
         self._raw_data: dict[str, Any] = {}
         self.metadata: VideoInformation = VideoInformation()
@@ -133,10 +136,17 @@ class YouTube:
         data = self._raw_data
         video_id = data.get("id")
 
+        # Build youtube_music_url if applicable
+        youtube_music_url: str | None = None
+
+        if video_id:
+            youtube_music_url = f"https://music.youtube.com/watch?v={video_id}"
+
         self.metadata = VideoInformation(
             source_url=self.url,
             short_url=f"https://youtu.be/{video_id}" if video_id else None,
             embed_url=f"https://www.youtube.com/embed/{video_id}" if video_id else None,
+            youtube_music_url=youtube_music_url,
             full_url=data.get("webpage_url") or self.url,
             id=video_id,
             title=data.get("fulltitle") or data.get("title"),
@@ -154,8 +164,11 @@ class YouTube:
             is_age_restricted=data.get("age_limit", 0) > 0,
             categories=data.get("categories", []),
             tags=data.get("tags", []),
+            chapters=data.get("chapters") or [],
             is_streaming=data.get("is_live", False),
             upload_timestamp=data.get("timestamp") or data.get("release_timestamp"),
+            availability=data.get("availability"),
+            language=data.get("language"),
         )
         # Generate candidate URLs for best thumbnails
         candidates = (
@@ -170,7 +183,7 @@ class YouTube:
         # Filter valid thumbnails
         best_thumbnails = filter_valid_youtube_thumbnails(candidates)
         unique_urls: set[str] = {str(t.get("url")) for t in data.get("thumbnails", []) if t.get("url")}
-        all_thumbnails: list[str] = sorted(unique_urls, key=lambda x: len(x))
+        all_thumbnails: list[str] = sorted(unique_urls, key=len)
 
         self.metadata.thumbnails = best_thumbnails
         self.metadata.all_thumbnails = all_thumbnails
@@ -208,6 +221,7 @@ class YouTube:
                         youtube_format_id=f.get("format_id"),
                         clean_title=self.metadata.clean_title,
                         id=self.metadata.id,
+                        ydl_opts=self._stream_ydl_opts,
                     )
                 )
 
@@ -227,6 +241,7 @@ class YouTube:
                         youtube_format_id=f.get("format_id"),
                         clean_title=self.metadata.clean_title,
                         id=self.metadata.id,
+                        ydl_opts=self._stream_ydl_opts,
                     )
                 )
 
@@ -245,8 +260,8 @@ class YouTube:
             )
 
         self.streams = Streams(
-            video=VideoStreamCollection(streams=sorted(video_list, key=lambda s: s.quality_score, reverse=True)),
-            audio=AudioStreamCollection(streams=sorted(audio_list, key=lambda s: s.quality_score, reverse=True)),
+            video=VideoStreamCollection(streams=sorted(video_list, key=attrgetter("quality_score"), reverse=True)),
+            audio=AudioStreamCollection(streams=sorted(audio_list, key=attrgetter("quality_score"), reverse=True)),
             subtitle=SubtitleStreamCollection(streams=subtitle_list),
         )
 
