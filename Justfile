@@ -1,15 +1,15 @@
 default:
     @just --list
 
-lint:
-    npx prettier --check .
-    uv run ruff check
-    uv run ty check
+install:
+    uv sync --upgrade --all-extras --all-groups
 
 format:
     npx prettier --write .
     uv run ruff format
     uv run ruff check --fix
 
-install:
-    uv sync --upgrade --all-extras --all-groups
+lint:
+    npx prettier --check .
+    uv run ruff check
+    uv run ty check
